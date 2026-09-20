@@ -11,7 +11,7 @@ No auth, no teams, no environments/variables — see "Not in this MVP" below.
 
 - **Monorepo**: pnpm workspaces + Turborepo
 - **API** (`apps/api`): Fastify 5 + TypeScript (ESM, run via `tsx`, no build step) + Zod
-  validation + Prisma/SQLite for persistence. The API performs the outbound HTTP call
+  validation + Prisma on Neon Postgres for persistence. The API performs the outbound HTTP call
   server-side (not the browser), so requests to any target host work without hitting CORS.
 - **Web** (`apps/web`): React 18 + Vite + TypeScript, Tailwind CSS v4, TanStack Query for
   server state, Zustand for the open-tabs/draft-request workspace state.
@@ -53,8 +53,8 @@ Requires Node.js 20+ and pnpm 9+.
 ```bash
 pnpm install
 
-cp apps/api/.env.example apps/api/.env
-pnpm --filter @restman/api db:migrate   # creates apps/api/prisma/dev.db
+cp apps/api/.env.example apps/api/.env   # then fill in the database URLs and Clerk keys
+pnpm --filter @restman/api db:migrate    # applies the migrations to your Neon branch
 
 pnpm dev   # runs the API (port 4000) and web app (port 5173) together
 ```
@@ -65,10 +65,33 @@ config is needed in development.
 Other useful commands:
 
 ```bash
-pnpm --filter @restman/api db:studio    # browse the SQLite data
+pnpm --filter @restman/api db:studio    # browse the database
+pnpm --filter @restman/api db:deploy    # apply committed migrations (production/CI)
 pnpm typecheck                          # type-check every package
 pnpm build                              # production build (web only for now)
 ```
+
+## Database (Neon Postgres)
+
+The API stores data in [Neon](https://neon.com) Postgres through Prisma. Neon gives every
+database two connection strings, and Prisma needs both:
+
+| Variable | Connection | Used for |
+| --- | --- | --- |
+| `DATABASE_URL` | **pooled** (host contains `-pooler`) | the running API |
+| `DATABASE_URL_UNPOOLED` | **direct** (no `-pooler`) | Prisma Migrate (`directUrl`) |
+
+Develop on a Neon branch, not on `production`:
+
+```bash
+neon branch create --name my-feature          # instant copy-on-write branch
+neon connection-string my-feature --pooled    # -> DATABASE_URL
+neon connection-string my-feature             # -> DATABASE_URL_UNPOOLED
+pnpm --filter @restman/api db:migrate
+```
+
+Apply committed migrations to a deployed database with `db:deploy`, using that database's
+own URLs. Never run `db:migrate` (`migrate dev`) against production.
 
 ## MVP scope
 

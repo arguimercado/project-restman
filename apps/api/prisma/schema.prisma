@@ -2,9 +2,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Neon Postgres. The app uses the pooled URL (PgBouncer); Prisma Migrate needs the direct one
+// (session-level operations don't work through the pooler).
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 // A company maps 1:1 to a Clerk Organization.
