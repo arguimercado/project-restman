@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A company maps 1:1 to a Clerk Organization.
+model Company {
+  id         String   @id @default(cuid())
+  clerkOrgId String   @unique
+  name       String
+  createdAt  DateTime @default(now())
+  teams      Team[]
+  users      User[]
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  companyId   String
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  createdAt   DateTime     @default(now())
+  members     User[]
+  collections Collection[]
+
+  @@index([companyId])
+}
+
+// A registered developer. `clerkUserId` links to the Clerk identity; without a row here
+// a Clerk account cannot use the API.
+model User {
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique
+  email       String
+  firstName   String
+  lastName    String
+  role        String   @default("member") // company role: "admin" | "member"
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  teamId      String
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([companyId])
+  @@index([teamId])
+}
+
+model Collection {
+  id        String    @id @default(cuid())
+  // Null only for rows that predate auth; the first team to register claims them.
+  teamId    String?
+  team      Team?     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  requests  Request[]
+
+  @@index([teamId])
+}
+
+model Request {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  name         String
+  method       String
+  url          String
+  paramsJson   String     @default("[]")
+  headersJson  String     @default("[]")
+  authJson     String     @default("{\"type\":\"none\"}")
+  bodyJson     String     @default("{\"type\":\"none\"}")
+  order        Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([collectionId])
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.turbo/
+*.log
+.env
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/api/prisma/*.db.bak*
+.DS_Store
