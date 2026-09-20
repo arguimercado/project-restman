@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { collectionsApi } from "../../api/collections";
 import { requestsApi } from "../../api/requests";
 import { transferApi } from "../../api/transfer";
+import { useProjectId } from "../../lib/useProjectId";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../store/workspaceStore";
 import { ConfirmDialog } from "../ConfirmDialog";
@@ -23,6 +24,7 @@ export function CollectionItem({ collection }: { collection: Collection }) {
   const [expanded, setExpanded] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const queryClient = useQueryClient();
+  const projectId = useProjectId();
   const openNewTab = useWorkspaceStore((s) => s.openNewTab);
 
   const { data: requests = [] } = useQuery({
@@ -40,13 +42,13 @@ export function CollectionItem({ collection }: { collection: Collection }) {
         if (tab.draft.collectionId === collection.id) closeTab(tab.draft.tabId);
       }
       queryClient.removeQueries({ queryKey: ["requests", collection.id] });
-      queryClient.invalidateQueries({ queryKey: ["collections"] });
+      queryClient.invalidateQueries({ queryKey: ["collections", projectId] });
     },
     onError: (error) => toast.error(`Delete failed: ${error.message}`),
   });
 
   const exportCollection = useMutation({
-    mutationFn: () => transferApi.exportToFile([collection.id], collection.name),
+    mutationFn: () => transferApi.exportToFile(projectId, [collection.id], collection.name),
     onError: (error) => toast.error(`Export failed: ${error.message}`),
   });
 

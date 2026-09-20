@@ -1,18 +1,27 @@
 import { prisma } from "../../db/client.js";
+import { assertProjectMember, memberOf } from "../projects/project-access.js";
 import type { CreateCollectionInput, UpdateCollectionInput } from "./collections.schema.js";
 
-// Every query is scoped to `teamId`: a row of another team behaves as if it did not exist.
+// Every query is scoped to projects `userId` is a member of: a collection of any other project
+// behaves as if it did not exist.
 export const collectionsService = {
-  list(teamId: string) {
-    return prisma.collection.findMany({ where: { teamId }, orderBy: { createdAt: "asc" } });
+  list(userId: string, projectId: string) {
+    return prisma.collection.findMany({
+      where: { projectId, project: memberOf(userId) },
+      orderBy: { createdAt: "asc" },
+    });
   },
-  create(teamId: string, input: CreateCollectionInput) {
-    return prisma.collection.create({ data: { name: input.name, teamId } });
+  async create(userId: string, projectId: string, input: CreateCollectionInput) {
+    await assertProjectMember(userId, projectId);
+    return prisma.collection.create({ data: { name: input.name, projectId } });
   },
-  rename(teamId: string, id: string, input: UpdateCollectionInput) {
-    return prisma.collection.update({ where: { id, teamId }, data: { name: input.name } });
+  rename(userId: string, id: string, input: UpdateCollectionInput) {
+    return prisma.collection.update({
+      where: { id, project: memberOf(userId) },
+      data: { name: input.name },
+    });
   },
-  remove(teamId: string, id: string) {
-    return prisma.collection.delete({ where: { id, teamId } });
+  remove(userId: string, id: string) {
+    return prisma.collection.delete({ where: { id, project: memberOf(userId) } });
   },
 };

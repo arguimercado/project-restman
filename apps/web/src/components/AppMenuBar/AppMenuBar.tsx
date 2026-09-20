@@ -1,10 +1,12 @@
 import { UserButton } from "@clerk/react";
 import { RESTMAN_FILE_EXTENSION, type ImportResult } from "@restman/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DownloadIcon, FolderOpenIcon, SendIcon } from "lucide-react";
+import { ChevronRightIcon, DownloadIcon, FolderOpenIcon, SendIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { Link, useMatch } from "react-router-dom";
 import { toast } from "sonner";
 import { collectionsApi } from "../../api/collections";
+import { projectsApi } from "../../api/projects";
 import { transferApi } from "../../api/transfer";
 import { useCurrentUser } from "../Auth/CurrentUser";
 import {
@@ -47,32 +49,45 @@ function showImportResult(result: ImportResult) {
   });
 }
 
+/** Top bar: brand (back to the project list), the open project, the File menu and the account. */
 export function AppMenuBar() {
   const user = useCurrentUser();
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
 
+  // The bar sits above the routes, so it reads the project from the URL itself.
+  const projectId = useMatch("/projects/:projectId")?.params.projectId;
+
+  const { data: project } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: () => projectsApi.get(projectId as string),
+    enabled: !!projectId,
+  });
+
   const { data: collections = [] } = useQuery({
-    queryKey: ["collections"],
-    queryFn: collectionsApi.list,
+    queryKey: ["collections", projectId],
+    queryFn: () => collectionsApi.list(projectId as string),
+    enabled: !!projectId,
   });
 
   const importFile = useMutation({
-    mutationFn: (file: File) => transferApi.importFile(file),
+    mutationFn: (file: File) => transferApi.importFile(projectId as string, file),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["collections"] });
+      queryClient.invalidateQueries({ queryKey: ["collections", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] }); // the project's collection count
       showImportResult(result);
     },
     onError: (error) => toast.error(`Import failed: ${error.message}`),
   });
 
   const exportAll = useMutation({
-    mutationFn: () => transferApi.exportToFile(undefined, "restman-workspace"),
+    mutationFn: () =>
+      transferApi.exportToFile(projectId as string, undefined, project?.name ?? "restman-workspace"),
     onError: (error) => toast.error(`Export failed: ${error.message}`),
   });
 
   function openFilePicker() {
-    if (!importFile.isPending) fileInput.current?.click();
+    if (projectId && !importFile.isPending) fileInput.current?.click();
   }
 
   // Ctrl/Cmd+O opens the import picker, like the File > Open shortcut in a desktop app.
@@ -89,30 +104,40 @@ export function AppMenuBar() {
 
   return (
     <header className="flex h-9 shrink-0 items-center gap-2 border-b bg-card px-2">
-      <div className="flex items-center gap-1.5 px-1.5 text-sm font-semibold">
-        <SendIcon className="size-4 text-primary" />
-        Restman
+      <div className="flex min-w-0 items-center gap-1 px-1.5 text-sm">
+        <Link to="/" className="flex shrink-0 items-center gap-1.5 font-semibold hover:text-primary">
+          <SendIcon className="size-4 text-primary" />
+          Restman
+        </Link>
+        {projectId && (
+          <>
+            <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="max-w-56 truncate text-muted-foreground">{project?.name ?? "…"}</span>
+          </>
+        )}
       </div>
 
-      <Menubar className="h-7 gap-0 border-0 bg-transparent p-0">
-        <MenubarMenu>
-          <MenubarTrigger>File</MenubarTrigger>
-          <MenubarContent className="w-64">
-            <MenubarItem disabled={importFile.isPending} onClick={openFilePicker}>
-              <FolderOpenIcon />
-              {importFile.isPending ? "Importing…" : "Open / Import…"}
-              <MenubarShortcut>Ctrl+O</MenubarShortcut>
-            </MenubarItem>
-            <MenubarItem
-              disabled={collections.length === 0 || exportAll.isPending}
-              onClick={() => exportAll.mutate()}
-            >
-              <DownloadIcon />
-              Export all
-            </MenubarItem>
-          </MenubarContent>
-        </MenubarMenu>
-      </Menubar>
+      {projectId && (
+        <Menubar className="h-7 gap-0 border-0 bg-transparent p-0">
+          <MenubarMenu>
+            <MenubarTrigger>File</MenubarTrigger>
+            <MenubarContent className="w-64">
+              <MenubarItem disabled={importFile.isPending} onClick={openFilePicker}>
+                <FolderOpenIcon />
+                {importFile.isPending ? "Importing…" : "Open / Import…"}
+                <MenubarShortcut>Ctrl+O</MenubarShortcut>
+              </MenubarItem>
+              <MenubarItem
+                disabled={collections.length === 0 || exportAll.isPending}
+                onClick={() => exportAll.mutate()}
+              >
+                <DownloadIcon />
+                Export all
+              </MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+        </Menubar>
+      )}
 
       <div className="ml-auto flex items-center gap-3">
         <span className="text-xs text-muted-foreground">

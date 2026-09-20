@@ -3,6 +3,7 @@ import { FolderPlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { collectionsApi } from "../../api/collections";
+import { useProjectId } from "../../lib/useProjectId";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "../ui/input-group";
 import { ScrollArea } from "../ui/scroll-area";
@@ -11,16 +12,17 @@ import { CollectionItem } from "./CollectionItem";
 
 export function Sidebar() {
   const queryClient = useQueryClient();
+  const projectId = useProjectId();
   const [newName, setNewName] = useState("");
 
   const { data: collections = [], isLoading } = useQuery({
-    queryKey: ["collections"],
-    queryFn: collectionsApi.list,
+    queryKey: ["collections", projectId],
+    queryFn: () => collectionsApi.list(projectId),
   });
 
   const createCollection = useMutation({
-    mutationFn: (name: string) => collectionsApi.create(name),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["collections"] }),
+    mutationFn: (name: string) => collectionsApi.create(projectId, name),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["collections", projectId] }),
     onError: (error) => toast.error(`Could not create collection: ${error.message}`),
   });
 

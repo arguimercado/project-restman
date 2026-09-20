@@ -3,6 +3,7 @@ import { dark } from "@clerk/ui/themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthGate } from "./components/Auth/AuthGate";
 import { Toaster } from "./components/ui/sonner";
@@ -31,7 +32,9 @@ ReactDOM.createRoot(rootElement).render(
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthGate>
-            <App />
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
           </AuthGate>
           <Toaster theme="dark" position="bottom-right" />
         </TooltipProvider>

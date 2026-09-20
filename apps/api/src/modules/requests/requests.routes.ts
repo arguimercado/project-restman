@@ -7,7 +7,7 @@ export async function requestsRoutes(app: FastifyInstance) {
   app.get<{ Params: { collectionId: string } }>(
     "/collections/:collectionId/requests",
     async (request) =>
-      requestsService.listByCollection(getCurrentUser(request).team.id, request.params.collectionId),
+      requestsService.listByCollection(getCurrentUser(request).id, request.params.collectionId),
   );
 
   app.post<{ Params: { collectionId: string } }>(
@@ -15,7 +15,7 @@ export async function requestsRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const input = upsertRequestSchema.parse(request.body);
       const created = await requestsService.create(
-        getCurrentUser(request).team.id,
+        getCurrentUser(request).id,
         request.params.collectionId,
         input,
       );
@@ -24,16 +24,16 @@ export async function requestsRoutes(app: FastifyInstance) {
   );
 
   app.get<{ Params: { id: string } }>("/requests/:id", async (request) =>
-    requestsService.get(getCurrentUser(request).team.id, request.params.id),
+    requestsService.get(getCurrentUser(request).id, request.params.id),
   );
 
   app.patch<{ Params: { id: string } }>("/requests/:id", async (request) => {
     const input = upsertRequestSchema.parse(request.body);
-    return requestsService.update(getCurrentUser(request).team.id, request.params.id, input);
+    return requestsService.update(getCurrentUser(request).id, request.params.id, input);
   });
 
   app.delete<{ Params: { id: string } }>("/requests/:id", async (request, reply) => {
-    await requestsService.remove(getCurrentUser(request).team.id, request.params.id);
+    await requestsService.remove(getCurrentUser(request).id, request.params.id);
     reply.status(204).send();
   });
 }
