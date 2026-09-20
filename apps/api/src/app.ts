@@ -4,6 +4,7 @@ import { env } from "./config/env.js";
 import { protectedAuthRoutes, publicAuthRoutes } from "./modules/auth/auth.routes.js";
 import { collectionsRoutes } from "./modules/collections/collections.routes.js";
 import { executeRoutes } from "./modules/execute/execute.routes.js";
+import { projectsRoutes } from "./modules/projects/projects.routes.js";
 import { requestsRoutes } from "./modules/requests/requests.routes.js";
 import { transferRoutes } from "./modules/transfer/transfer.routes.js";
 import { registerErrorHandler } from "./plugins/error-handler.js";
@@ -26,6 +27,7 @@ export function buildApp() {
       await instance.register(async (protectedScope) => {
         requireUser(protectedScope);
         await protectedScope.register(protectedAuthRoutes);
+        await protectedScope.register(projectsRoutes);
         await protectedScope.register(collectionsRoutes);
         await protectedScope.register(requestsRoutes);
         await protectedScope.register(executeRoutes);

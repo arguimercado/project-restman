@@ -14,20 +14,35 @@ export async function transferRoutes(app: FastifyInstance) {
     (_request, body, done) => done(null, body),
   );
 
-  app.get<{ Querystring: { ids?: string } }>("/export", async (request, reply) => {
-    const ids = request.query.ids?.split(",").filter(Boolean);
-    const file = await transferService.exportFile(getCurrentUser(request).team.id, ids);
-    reply
-      .header("Content-Type", RESTMAN_MIME_TYPE)
-      .header("Cache-Control", "no-store")
-      .send(file);
-  });
+  app.get<{ Params: { projectId: string }; Querystring: { ids?: string } }>(
+    "/projects/:projectId/export",
+    async (request, reply) => {
+      const ids = request.query.ids?.split(",").filter(Boolean);
+      const file = await transferService.exportFile(
+        getCurrentUser(request).id,
+        request.params.projectId,
+        ids,
+      );
+      reply
+        .header("Content-Type", RESTMAN_MIME_TYPE)
+        .header("Cache-Control", "no-store")
+        .send(file);
+    },
+  );
 
-  app.post("/import", { bodyLimit: MAX_IMPORT_BYTES }, async (request, reply) => {
-    if (!Buffer.isBuffer(request.body) || request.body.length === 0) {
-      throw new ImportError("The file is empty");
-    }
-    const result = await transferService.importFile(getCurrentUser(request).team.id, request.body);
-    reply.status(201).send(result);
-  });
+  app.post<{ Params: { projectId: string } }>(
+    "/projects/:projectId/import",
+    { bodyLimit: MAX_IMPORT_BYTES },
+    async (request, reply) => {
+      if (!Buffer.isBuffer(request.body) || request.body.length === 0) {
+        throw new ImportError("The file is empty");
+      }
+      const result = await transferService.importFile(
+        getCurrentUser(request).id,
+        request.params.projectId,
+        request.body,
+      );
+      reply.status(201).send(result);
+    },
+  );
 }

@@ -69,8 +69,6 @@ export const authService = {
             teamId: team.id,
           },
         });
-        // Collections from before auth existed have no owner: the first team to register claims them.
-        await tx.collection.updateMany({ where: { teamId: null }, data: { teamId: team.id } });
         return { user, company, team };
       });
 

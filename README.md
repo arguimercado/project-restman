@@ -116,6 +116,9 @@ Protect the `production` branch in the Neon console so it can't be deleted or re
 
 ## MVP scope
 
+- Projects: the first page after sign-in lists the projects you are a member of; create one and
+  you become its owner. A project holds its own collections and requests, and only its members can
+  see them. (Inviting other members is next.)
 - Collections: create, rename, delete
 - Requests: all standard HTTP methods, query params, headers, auth (No Auth, Bearer, Basic,
   API Key), body (none, raw JSON/text/XML/HTML, x-www-form-urlencoded)

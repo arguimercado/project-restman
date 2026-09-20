@@ -1,6 +1,7 @@
 import type { ImportResult } from "@restman/shared";
 import { parse as parseYaml } from "yaml";
 import { prisma } from "../../db/client.js";
+import { assertProjectMember, memberOf } from "../projects/project-access.js";
 import { serialize } from "../requests/requests.service.js";
 import { convertOpenApi } from "./openapi.js";
 import {
@@ -25,11 +26,11 @@ function parseTextDocument(buffer: Buffer): unknown {
   }
 }
 
-function toCollectionCreate(teamId: string, draft: CollectionDraft) {
+function toCollectionCreate(projectId: string, draft: CollectionDraft) {
   return prisma.collection.create({
     data: {
       name: draft.name,
-      teamId,
+      projectId,
       requests: {
         create: draft.requests.map((r, order) => ({
           name: r.name,
@@ -47,10 +48,10 @@ function toCollectionCreate(teamId: string, draft: CollectionDraft) {
 }
 
 export const transferService = {
-  /** Encodes the given collections (or every collection) of the team as a `.restman` file. */
-  async exportFile(teamId: string, ids?: string[]): Promise<Buffer> {
+  /** Encodes the given collections (or every collection) of the project as a `.restman` file. */
+  async exportFile(userId: string, projectId: string, ids?: string[]): Promise<Buffer> {
     const rows = await prisma.collection.findMany({
-      where: { teamId, ...(ids?.length ? { id: { in: ids } } : {}) },
+      where: { projectId, project: memberOf(userId), ...(ids?.length ? { id: { in: ids } } : {}) },
       orderBy: { createdAt: "asc" },
       include: { requests: { orderBy: { order: "asc" } } },
     });
@@ -77,8 +78,10 @@ export const transferService = {
     );
   },
 
-  /** Detects the format (.restman or OpenAPI 3.x JSON/YAML) and saves it as new collections of the team. */
-  async importFile(teamId: string, buffer: Buffer): Promise<ImportResult> {
+  /** Detects the format (.restman or OpenAPI 3.x JSON/YAML) and saves it as new collections of the project. */
+  async importFile(userId: string, projectId: string, buffer: Buffer): Promise<ImportResult> {
+    await assertProjectMember(userId, projectId);
+
     let format: ImportResult["format"];
     let drafts: CollectionDraft[];
     let warnings: string[] = [];
@@ -107,7 +110,7 @@ export const transferService = {
       }
     }
 
-    const collections = await prisma.$transaction(drafts.map((draft) => toCollectionCreate(teamId, draft)));
+    const collections = await prisma.$transaction(drafts.map((draft) => toCollectionCreate(projectId, draft)));
     return {
       format,
       // Dates serialize to ISO strings over the wire, matching the shared `Collection` type.

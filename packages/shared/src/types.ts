@@ -98,3 +98,23 @@ export interface RegisterPayload {
   companyName: string;
   teamName: string;
 }
+
+export type ProjectRole = "owner" | "member";
+
+/** A project as seen by one of its members. */
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  /** The viewing user's role in the project. */
+  role: ProjectRole;
+  memberCount: number;
+  collectionCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProjectPayload {
+  name: string;
+  description?: string;
+}

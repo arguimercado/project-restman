@@ -27,7 +27,6 @@ model Team {
   name        String
   createdAt   DateTime     @default(now())
   members     User[]
-  collections Collection[]
 
   @@index([companyId])
 }
@@ -46,22 +45,46 @@ model User {
   teamId      String
   team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+  projects    ProjectMember[]
 
   @@index([companyId])
   @@index([teamId])
 }
 
+// Projects are the unit of sharing: collections belong to a project, and a developer can only
+// see the projects they are a member of.
+model Project {
+  id          String          @id @default(cuid())
+  name        String
+  description String          @default("")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  members     ProjectMember[]
+  collections Collection[]
+}
+
+model ProjectMember {
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("member") // "owner" | "member"
+  createdAt DateTime @default(now())
+
+  @@id([projectId, userId])
+  @@index([userId])
+}
+
 model Collection {
   id        String    @id @default(cuid())
-  // Null only for rows that predate auth; the first team to register claims them.
-  teamId    String?
-  team      Team?     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name      String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   requests  Request[]
 
-  @@index([teamId])
+  @@index([projectId])
 }
 
 model Request {
