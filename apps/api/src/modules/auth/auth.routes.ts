@@ -6,6 +6,7 @@ import { authService } from "./auth.service.js";
 
 /** Public routes: anyone may register, so this endpoint is rate limited per IP. */
 export async function publicAuthRoutes(app: FastifyInstance) {
+  
   await app.register(rateLimit, { global: false });
 
   app.post(
