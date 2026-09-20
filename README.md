@@ -1,11 +1,12 @@
 # Restman2
 
-A minimal, single-user, Postman-like API client. Node.js + React monorepo, MVP scope.
+A minimal, Postman-like API client for teams. Node.js + React monorepo, MVP scope.
 
 This is a separate rebuild from `../restman` (a much larger .NET/Couchbase/Keycloak
 team-collaboration spec). Restman2 intentionally targets a small slice of that product:
 build a request, send it, look at the response, organize saved requests into collections.
-No auth, no teams, no environments/variables — see "Not in this MVP" below.
+Developers register with their company and team and sign in with Clerk; collections are shared
+within a team. No environments/variables yet — see "Not in this MVP" below.
 
 ## Stack
 
@@ -73,7 +74,7 @@ pnpm build                              # production build (web only for now)
 
 ## Database (Neon Postgres)
 
-The API stores data in [Neon](https://neon.com) Postgres through Prisma. Neon gives every
+Data lives in [Neon](https://neon.com) Postgres, accessed through Prisma. Neon gives every
 database two connection strings, and Prisma needs both:
 
 | Variable | Connection | Used for |
@@ -81,17 +82,37 @@ database two connection strings, and Prisma needs both:
 | `DATABASE_URL` | **pooled** (host contains `-pooler`) | the running API |
 | `DATABASE_URL_UNPOOLED` | **direct** (no `-pooler`) | Prisma Migrate (`directUrl`) |
 
-Develop on a Neon branch, not on `production`:
+### Working as a team
+
+**Every developer works on their own Neon branch.** Never share one `DATABASE_URL`, and never
+point local development at `production`. A branch is an instant, isolated, copy-on-write clone,
+so it costs nothing to make one and you can break it freely.
 
 ```bash
-neon branch create --name my-feature          # instant copy-on-write branch
-neon connection-string my-feature --pooled    # -> DATABASE_URL
-neon connection-string my-feature             # -> DATABASE_URL_UNPOOLED
-pnpm --filter @restman/api db:migrate
+# once: get access to the Neon project, then
+neon login
+neon link                                                 # pick the project
+
+# your own branch (use --schema-only once production holds real customer data)
+neon branch create --name dev-<yourname> --schema-only --parent production
+neon connection-string dev-<yourname> --pooled            # -> DATABASE_URL in apps/api/.env
+neon connection-string dev-<yourname>                     # -> DATABASE_URL_UNPOOLED
+pnpm --filter @restman/api db:migrate                     # applies all committed migrations
 ```
 
-Apply committed migrations to a deployed database with `db:deploy`, using that database's
-own URLs. Never run `db:migrate` (`migrate dev`) against production.
+`.env` files are git-ignored: keep the URLs there and never commit them.
+
+**Schema changes** go through Prisma migrations, committed with the code:
+
+1. Edit `apps/api/prisma/schema.prisma` and run `pnpm --filter @restman/api db:migrate` against
+   your branch (it asks for a migration name). Commit the new folder under `prisma/migrations/`.
+2. After pulling a teammate's migration, run `db:migrate` again to apply it to your branch.
+3. If two branches add migrations at the same time, keep both folders when merging (Prisma
+   applies them in timestamp order) and check that they apply cleanly on a fresh branch.
+4. Deployed databases (production, CI) only ever get `pnpm --filter @restman/api db:deploy`,
+   with that database's own URLs. Never run `db:migrate` (`migrate dev`) against production.
+
+Protect the `production` branch in the Neon console so it can't be deleted or reset by accident.
 
 ## MVP scope
 
@@ -104,7 +125,7 @@ own URLs. Never run `db:migrate` (`migrate dev`) against production.
   so local dev servers with self-signed certs work. Connection failures report the real cause
   (refused, unresolved host, wrong protocol, bad certificate) instead of a bare "fetch failed".
 - Multiple open tabs with unsaved-change tracking
-- Files (sidebar → **Open / Import**, **Export all**, or the ↓ button on a collection):
+- Files (top menu **File → Open / Import…** and **File → Export all**, or the ↓ button on a collection):
   - Export to a `.restman` file to back up, move between machines or work offline.
   - Import a `.restman` file, or an **OpenAPI 3.x** document (JSON or YAML). An OpenAPI
     import becomes one collection, grouped by tag, with the server URL, query/header/path
@@ -121,7 +142,7 @@ tokens/passwords saved in your requests, so treat them like credentials.
 
 ## Not in this MVP (candidates for later)
 
-- Auth / multi-user / teams
+- Inviting teammates into an existing company/team (registration currently always creates a new company)
 - Environments and `{{variable}}` interpolation
 - Request history, re-send from history
 - Postman/cURL import, Postman export, cURL code generation
