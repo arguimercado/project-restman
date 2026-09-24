@@ -46,6 +46,7 @@ model User {
   team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   projects    ProjectMember[]
+  sentInvites ProjectInvite[]
 
   @@index([companyId])
   @@index([teamId])
@@ -61,6 +62,7 @@ model Project {
   updatedAt   DateTime        @updatedAt
   members     ProjectMember[]
   collections Collection[]
+  invites     ProjectInvite[]
 }
 
 model ProjectMember {
@@ -73,6 +75,27 @@ model ProjectMember {
 
   @@id([projectId, userId])
   @@index([userId])
+}
+
+// A one-time link an owner shares out-of-band (there is no email integration) to add a
+// registered developer to their project. Locked to the invited email so only that account can
+// redeem it.
+model ProjectInvite {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  email       String
+  token       String    @unique
+  role        String    @default("member") // role granted to the member on acceptance
+  invitedById String
+  invitedBy   User      @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+  status      String    @default("pending") // "pending" | "accepted" | "revoked"
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  acceptedAt  DateTime?
+
+  @@index([projectId])
+  @@index([email])
 }
 
 model Collection {

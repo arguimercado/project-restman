@@ -1,14 +1,16 @@
 import { UserButton } from "@clerk/react";
 import { RESTMAN_FILE_EXTENSION, type ImportResult } from "@restman/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRightIcon, DownloadIcon, FolderOpenIcon, SendIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ChevronRightIcon, DownloadIcon, FolderOpenIcon, SendIcon, UserPlusIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useMatch } from "react-router-dom";
 import { toast } from "sonner";
 import { collectionsApi } from "../../api/collections";
 import { projectsApi } from "../../api/projects";
 import { transferApi } from "../../api/transfer";
 import { useCurrentUser } from "../Auth/CurrentUser";
+import { InviteMembersDialog } from "../Projects/InviteMembersDialog";
+import { Button } from "../ui/button";
 import {
   Menubar,
   MenubarContent,
@@ -54,6 +56,7 @@ export function AppMenuBar() {
   const user = useCurrentUser();
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   // The bar sits above the routes, so it reads the project from the URL itself.
   const projectId = useMatch("/projects/:projectId")?.params.projectId;
@@ -140,6 +143,12 @@ export function AppMenuBar() {
       )}
 
       <div className="ml-auto flex items-center gap-3">
+        {projectId && project?.role === "owner" && (
+          <Button variant="outline" size="sm" onClick={() => setInviteOpen(true)}>
+            <UserPlusIcon data-icon="inline-start" />
+            Invite
+          </Button>
+        )}
         <span className="text-xs text-muted-foreground">
           {user.company.name} / {user.team.name}
         </span>
@@ -157,6 +166,10 @@ export function AppMenuBar() {
           e.target.value = ""; // allow re-selecting the same file
         }}
       />
+
+      {projectId && (
+        <InviteMembersDialog projectId={projectId} open={inviteOpen} onOpenChange={setInviteOpen} />
+      )}
     </header>
   );
 }

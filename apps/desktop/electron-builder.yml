@@ -1,0 +1,18 @@
+# Packages the electron-vite build output (out/) into downloadable installers.
+# Add icons under apps/desktop/build/ (icon.ico, icon.icns, icon.png) before a real release.
+appId: com.restman.desktop
+productName: Restman
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+win:
+  target: nsis
+mac:
+  target: dmg
+  category: public.app-category.developer-tools
+linux:
+  target: AppImage
+  category: Development

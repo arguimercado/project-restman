@@ -31,7 +31,7 @@ function toWebRequest(request: FastifyRequest) {
 async function authenticate(request: FastifyRequest) {
   const state = await clerkClient.authenticateRequest(toWebRequest(request), {
     acceptsToken: "session_token",
-    authorizedParties: [env.corsOrigin],
+    authorizedParties: env.corsOrigins,
     jwtKey: env.clerkJwtKey,
   });
 

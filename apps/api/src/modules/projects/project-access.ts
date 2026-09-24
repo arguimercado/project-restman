@@ -1,4 +1,5 @@
 import { prisma } from "../../db/client.js";
+import { HttpError } from "../../errors.js";
 
 /**
  * Prisma filter for "projects this user is a member of". Every project-scoped query includes it, so
@@ -14,4 +15,17 @@ export async function assertProjectMember(userId: string, projectId: string) {
     where: { id: projectId, ...memberOf(userId) },
     select: { id: true },
   });
+}
+
+/**
+ * Not a member: 404 (same as `assertProjectMember`). A member but not the owner: 403 — owner-only
+ * actions (inviting, revoking) should say so rather than pretending the project doesn't exist.
+ */
+export async function assertProjectOwner(userId: string, projectId: string) {
+  const membership = await prisma.projectMember.findUniqueOrThrow({
+    where: { projectId_userId: { projectId, userId } },
+  });
+  if (membership.role !== "owner") {
+    throw new HttpError(403, "Only the project owner can do this");
+  }
 }

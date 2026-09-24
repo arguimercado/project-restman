@@ -118,3 +118,33 @@ export interface CreateProjectPayload {
   name: string;
   description?: string;
 }
+
+export type ProjectInviteStatus = "pending" | "accepted" | "revoked" | "expired";
+
+/** An invite an owner has created, as seen by that owner (includes the redeemable link's token). */
+export interface ProjectInvite {
+  id: string;
+  projectId: string;
+  email: string;
+  token: string;
+  status: ProjectInviteStatus;
+  expiresAt: string;
+  createdAt: string;
+  invitedBy: { firstName: string; lastName: string };
+}
+
+export interface CreateInvitePayload {
+  email: string;
+}
+
+/** What the accept-invite page shows before the invited developer commits to joining. */
+export interface ProjectInvitePreview {
+  projectName: string;
+  email: string;
+  invitedBy: string;
+  status: ProjectInviteStatus;
+}
+
+export interface AcceptInviteResult {
+  projectId: string;
+}

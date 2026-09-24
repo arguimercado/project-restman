@@ -18,7 +18,11 @@ function required(name: string): string {
 
 export const env = {
   port: Number(process.env.PORT ?? 4000),
-  corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  /** Comma-separated in .env: the web dev server, plus any other UI (e.g. the desktop app) that calls this API. */
+  corsOrigins: (process.env.CORS_ORIGIN ?? "http://localhost:5173")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
   clerkSecretKey: required("CLERK_SECRET_KEY"),
   clerkPublishableKey: required("CLERK_PUBLISHABLE_KEY"),
   /** Optional PEM public key. When set, session tokens are verified without a network call. */

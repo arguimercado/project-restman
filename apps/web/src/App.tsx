@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppMenuBar } from "./components/AppMenuBar/AppMenuBar";
+import { AcceptInvitePage } from "./pages/AcceptInvitePage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { ProjectWorkspace } from "./pages/ProjectWorkspace";
 
@@ -18,6 +19,7 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route index element={<ProjectsPage />} />
         <Route path="projects/:projectId" element={<ProjectWorkspace />} />
+        <Route path="invites/:token" element={<AcceptInvitePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
